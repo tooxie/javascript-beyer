@@ -1,15 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html ng-app>
     <head>
         <title>Beyer Music Player // Mozilla Dev Derby</title>
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.1/angular.min.js"></script>
+        <script type="text/javascript" src="https://raw.github.com/aadsm/JavaScript-ID3-Reader/master/src/id3.js"></script>
         <link rel="stylesheet" type="text/css" href="http://cdn.jsdelivr.net/foundation/3.2.4/stylesheets/foundation.min.css">
         <style type="text/css">
-            #dropzone {
+            #playlist .empty {
                 text-align: center;
             }
 
-            #dropzone.over {
+            #playlist.over {
                 background-color: rgba(43, 166, 203, 0.7);
             }
         </style>
@@ -19,23 +20,28 @@
                 audio: null,
                 trackList: [],
                 addTrack: function(track) {
-                    this.trackList = this.trackList.concat(track);
+                    if (this.isSupported(track.type)) {
+                        console.log('Adding ' + track.name);
+                        this.trackList = this.trackList.concat(track);
+                    }
+                },
+                isSupported: function(type) {
+                    if (type == "audio/mp3" || type == "audio/ogg") {
+                        return true;
+                    }
+
+                    return false;
                 },
                 play: function(index) {
-                    var reader = new FileReader(),
-                        track = this.trackList[index || 0],
-                        that = this;
+                    var track = this.trackList[index || 0],
+                        url = window.URL || window.webkitURL,
+                        src = url.createObjectURL(track);
 
-                    reader.onload = (function(track) {
-                        return function(e) {
-                            that.audio = new Audio();
-                            that.audio.src = e.target.result;
-                            that.audio.load();
-                            that.audio.play();
-                        };
-                    })(track);
-
-                    reader.readAsDataURL(track);
+                    this.audio = new Audio();
+                    this.audio.src = src;
+                    this.audio.load();
+                    this.audio.play();
+                    console.log('Playing ' + track.name);
                 },
                 pause: function() {
                     this.audio.pause();
@@ -43,20 +49,14 @@
             }
 
             // AngularJS
-            Beyer.app = angular.module('beyer', []).config(['$routeProvider', function($routeProvider) {
-                $routeProvider
-                    .when('/', {
-                        templateUrl: 'partials/artist-list.html',
-                        controller: Shiva.Controllers.ArtistList
-                    })
-                    .otherwise({redirectTo: '/'});
-            }]);
+            // Beyer.app = angular.module('beyer', []);
+            Beyer.controller = function ($scope) {
+                $scope.playlist = Beyer.Playlist.trackList;
 
-            document.addEventListener('DOMContentLoaded', function() {
                 var dropzone = document.getElementById('dropzone');
 
                 dropzone.addEventListener('drop', function (e) {
-                    e.target.classList.remove('over');
+                    document.getElementById('playlist').classList.remove('over');
                     e.stopPropagation();
                     e.preventDefault();
 
@@ -64,15 +64,20 @@
                     for (var i = 0, track; track = tracks[i]; i++) {
                         Beyer.Playlist.addTrack(track);
                     }
+
+                    $scope.$apply(function() {
+                        $scope.playlist = Beyer.Playlist.trackList;
+                    });
+
                     Beyer.Playlist.play();
                 }, false);
 
                 dropzone.addEventListener('dragend', function (e) {
-                    e.target.classList.remove('over');
+                    document.getElementById('playlist').classList.remove('over');
                 }, false);
 
                 dropzone.addEventListener('dragenter', function (e) {
-                    e.target.classList.add('over');
+                    document.getElementById('playlist').classList.add('over');
                 }, false);
 
                 dropzone.addEventListener('dragover', function (e) {
@@ -80,15 +85,14 @@
                     e.preventDefault();
                     e.dataTransfer.dropEffect = 'copy';
                 }, false)
+            };
 
-                dropzone.addEventListener('dragleave', function (e) {
-                    e.target.classList.remove('over');
-                }, false);
+            document.addEventListener('DOMContentLoaded', function() {
             }, false);
         </script>
     </head>
 
-    <body>
+    <body id="dropzone" ng-controller="Beyer.controller">
         <div class="row">
             <h1>
                 Beyer Music Player
@@ -96,15 +100,18 @@
 
             <hr>
 
-            <div id="dropzone" class="panel callout radius">
-                Drop files here
-            </div>
-
             <h2>
                 Playlist
             </h2>
             <div id="playlist" class="panel radius">
-                Empty
+                <div class="empty" ng-hide="playlist.length">
+                    Drop music here
+                </div>
+                <ol>
+                    <li ng-repeat="track in playlist">
+                        {{ track.name }} ({{ track.size / 1024 }}Kb)
+                    </li>
+                </ol>
             </div>
         </div>
     </body>
