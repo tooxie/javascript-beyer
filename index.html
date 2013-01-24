@@ -14,10 +14,14 @@
                 background-color: rgb(43, 166, 203);
             }
 
-            .songname {
+            #timer {
                 float: left;
                 margin-top: -18px;
                 width: 100%;
+            }
+
+            .meter {
+                width: 0;
             }
 
             .active {
@@ -45,15 +49,43 @@
                     return false;
                 },
                 load: function(index) {
-                    var track = this.trackList[index || 0],
+                    var track = this.trackList[this.index],
                         url = window.URL || window.webkitURL,
                         src = url.createObjectURL(track);
-
-                    this.index = index || 0;
 
                     this.audio = new Audio();
                     this.audio.src = src;
                     this.audio.load();
+
+                    this.audio.addEventListener('loadedmetadata', function(){
+                        var mins = Math.floor(this.duration / 60),
+                            secs = (Math.floor(this.duration) % 60).toFixed();
+
+                        secs = (secs.length < 2) ? "0" + secs : secs;
+
+                        this.durationAsString = mins + ':' + secs;
+                    }, false);
+
+                    this.audio.addEventListener('timeupdate', function() {
+                        var mins = Math.floor(this.currentTime / 60),
+                            secs = (Math.floor(this.currentTime) % 60).toFixed() + '',
+                            elapsed = ((this.currentTime / this.duration) * 100) + "%",
+                            progressbar = document.getElementById('progressbar'),
+                            timer = document.getElementById('timer');
+
+                        secs = (secs.length < 2) ? "0" + secs : secs;
+
+                        timer.innerHTML = mins + ':' + secs + ' / ' + this.durationAsString;
+                        progressbar.style.width = elapsed + '%';
+                    }, false);
+
+                    this.audio.addEventListener('ended', function(){
+                        if (Beyer.Playlist.index + 1 < Beyer.Playlist.trackList.length) {
+                            Beyer.Playlist.next();
+                        } else {
+                            Beyer.Playlist.pause();
+                        }
+                    }, false);
                 },
                 play: function () {
                     console.log('Playing ' + this.trackList[this.index].name);
@@ -70,6 +102,23 @@
                     } else {
                         this.play();
                     }
+                },
+                prev: function() {
+                    this.index = this.index == 0 ? this.trackList.length - 1 : this.index - 1;
+                    console.log(this.index);
+                    this.reload();
+                },
+                next: function() {
+                    this.index = (this.index + 1) % this.trackList.length;
+                    console.log(this.index);
+                    this.reload();
+                },
+                reload: function() {
+                    this.pause();
+                    this.audio.src = '';
+                    this.audio = undefined;
+                    this.load();
+                    this.play();
                 }
             };
 
@@ -109,6 +158,7 @@
                     e.preventDefault();
                     e.dataTransfer.dropEffect = 'copy';
                 }, false)
+                var buttons = document.getElementsByClassName('button');
             };
         </script>
     </head>
@@ -122,9 +172,12 @@
             <hr>
 
             <div id="player" class="panel radius">
+                <h4 class="subheader">
+                    {{ playlist.trackList[playlist.index].name }}
+                </h3>
                 <div class="progress" ng-show="playlist.audio">
-                    <span class="meter"></span>
-                    <span class="songname">{{ playlist.trackList[playlist.index].name }}</span>
+                    <span id="progressbar" class="meter"></span>
+                    <span id="timer">0:00</span>
                 </div>
                 <ul class="button-group radius">
                     <li>
@@ -132,10 +185,10 @@
                         <a href="#" class="button radius" ng-show="playlist.isPlaying" ng-click="playlist.togglePlay()">Pause</a>
                     </li>
                     <li>
-                        <a href="#" class="button radius">Prev</a>
+                        <a href="#" class="button radius" ng-click="playlist.prev()">Prev</a>
                     </li>
                     <li>
-                        <a href="#" class="button radius">Next</a>
+                        <a href="#" class="button radius" ng-click="playlist.next()">Next</a>
                     </li>
                 </ul>
             </div>
@@ -149,7 +202,7 @@
                 </div>
                 <ol>
                     <li ng-repeat="track in playlist.trackList" ng-class="{track: 1, active: $index==playlist.index, even: $index%2==0, odd: !($index%2==0)}">
-                        {{ track.name }} ({{ track.size / 1024 }}Kb)
+                        {{ track.name }}
                     </li>
                 </ol>
             </div>
