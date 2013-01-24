@@ -6,17 +6,29 @@
         <script type="text/javascript" src="https://raw.github.com/aadsm/JavaScript-ID3-Reader/master/src/id3.js"></script>
         <link rel="stylesheet" type="text/css" href="http://cdn.jsdelivr.net/foundation/3.2.4/stylesheets/foundation.min.css">
         <style type="text/css">
-            #playlist .empty {
+            #playlist .empty, #player {
                 text-align: center;
             }
 
             #playlist.over {
-                background-color: rgba(43, 166, 203, 0.7);
+                background-color: rgb(43, 166, 203);
+            }
+
+            .songname {
+                float: left;
+                margin-top: -18px;
+                width: 100%;
+            }
+
+            .active {
+                font-weight: bold;
             }
         </style>
         <script type="text/javascript">
             Beyer = {};
             Beyer.Playlist = {
+                index: 0,
+                isPlaying: false,
                 audio: null,
                 trackList: [],
                 addTrack: function(track) {
@@ -32,26 +44,38 @@
 
                     return false;
                 },
-                play: function(index) {
+                load: function(index) {
                     var track = this.trackList[index || 0],
                         url = window.URL || window.webkitURL,
                         src = url.createObjectURL(track);
 
+                    this.index = index || 0;
+
                     this.audio = new Audio();
                     this.audio.src = src;
                     this.audio.load();
+                },
+                play: function () {
+                    console.log('Playing ' + this.trackList[this.index].name);
+                    this.isPlaying = true;
                     this.audio.play();
-                    console.log('Playing ' + track.name);
                 },
                 pause: function() {
+                    this.isPlaying = false;
                     this.audio.pause();
+                },
+                togglePlay: function() {
+                    if (this.isPlaying) {
+                        this.pause();
+                    } else {
+                        this.play();
+                    }
                 }
-            }
+            };
 
-            // AngularJS
-            // Beyer.app = angular.module('beyer', []);
+            // AngularJS stuff
             Beyer.controller = function ($scope) {
-                $scope.playlist = Beyer.Playlist.trackList;
+                $scope.playlist = Beyer.Playlist;
 
                 var dropzone = document.getElementById('dropzone');
 
@@ -65,11 +89,11 @@
                         Beyer.Playlist.addTrack(track);
                     }
 
-                    $scope.$apply(function() {
-                        $scope.playlist = Beyer.Playlist.trackList;
-                    });
+                    if (!Beyer.Playlist.audio) {
+                        Beyer.Playlist.load();
+                    }
 
-                    Beyer.Playlist.play();
+                    $scope.$apply(function () {});
                 }, false);
 
                 dropzone.addEventListener('dragend', function (e) {
@@ -86,9 +110,6 @@
                     e.dataTransfer.dropEffect = 'copy';
                 }, false)
             };
-
-            document.addEventListener('DOMContentLoaded', function() {
-            }, false);
         </script>
     </head>
 
@@ -100,15 +121,34 @@
 
             <hr>
 
+            <div id="player" class="panel radius">
+                <div class="progress" ng-show="playlist.audio">
+                    <span class="meter"></span>
+                    <span class="songname">{{ playlist.trackList[playlist.index].name }}</span>
+                </div>
+                <ul class="button-group radius">
+                    <li>
+                        <a href="#" class="button radius" ng-show="!playlist.isPlaying" ng-click="playlist.togglePlay()">Play</a>
+                        <a href="#" class="button radius" ng-show="playlist.isPlaying" ng-click="playlist.togglePlay()">Pause</a>
+                    </li>
+                    <li>
+                        <a href="#" class="button radius">Prev</a>
+                    </li>
+                    <li>
+                        <a href="#" class="button radius">Next</a>
+                    </li>
+                </ul>
+            </div>
+
             <h2>
                 Playlist
             </h2>
             <div id="playlist" class="panel radius">
-                <div class="empty" ng-hide="playlist.length">
+                <div class="empty" ng-hide="playlist.trackList.length">
                     Drop music here
                 </div>
                 <ol>
-                    <li ng-repeat="track in playlist">
+                    <li ng-repeat="track in playlist.trackList" ng-class="{track: 1, active: $index==playlist.index, even: $index%2==0, odd: !($index%2==0)}">
                         {{ track.name }} ({{ track.size / 1024 }}Kb)
                     </li>
                 </ol>
