@@ -35,18 +35,15 @@
                 isPlaying: false,
                 audio: null,
                 trackList: [],
+                errors: [],
                 addTrack: function(track) {
-                    if (this.isSupported(track.type)) {
+                    var canPlay = (new Audio()).canPlayType(track.type);
+                    if (canPlay == "probably" || canPlay == "maybe") {
                         console.log('Adding ' + track.name);
                         this.trackList = this.trackList.concat(track);
+                    } else {
+                        this.addError("Format '" + track.type + "' is not supported by your browser.");
                     }
-                },
-                isSupported: function(type) {
-                    if (type == "audio/mp3" || type == "audio/ogg") {
-                        return true;
-                    }
-
-                    return false;
                 },
                 load: function(index) {
                     var track = this.trackList[this.index],
@@ -97,6 +94,9 @@
                     this.audio.pause();
                 },
                 togglePlay: function() {
+                    if (!this.trackList.length) {
+                        return false;
+                    }
                     if (this.isPlaying) {
                         this.pause();
                     } else {
@@ -119,6 +119,28 @@
                     this.audio = undefined;
                     this.load();
                     this.play();
+                },
+                addError: function(error) {
+                    var exists = false,
+                        x = this.errors.length;
+
+                    while (x--) {
+                        if (this.errors[x] == error) {
+                            exists = true;
+                        }
+                    }
+                    if (!exists) {
+                        this.errors = this.errors.concat(error);
+                        console.log('[ERROR] ' + error);
+                    }
+                },
+                removeError: function (error) {
+                    var x = this.errors.length;
+                    while (x--) {
+                        if (this.errors[x] == error) {
+                            this.errors.splice(x, 1);
+                        }
+                    }
                 }
             };
 
@@ -138,7 +160,7 @@
                         Beyer.Playlist.addTrack(track);
                     }
 
-                    if (!Beyer.Playlist.audio) {
+                    if (!Beyer.Playlist.audio && Beyer.Playlist.trackList.length) {
                         Beyer.Playlist.load();
                     }
 
@@ -170,6 +192,13 @@
             </h1>
 
             <hr>
+
+            <div id="errors" ng-show="playlist.errors.length">
+                <div class="alert-box alert" ng-repeat="error in playlist.errors">
+                    {{ error }}
+                    <a href="" class="close" ng-click="playlist.removeError(error)">&times;</a>
+                </div>
+            </div>
 
             <div id="player" class="panel radius">
                 <h4 class="subheader">
