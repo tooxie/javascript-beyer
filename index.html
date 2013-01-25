@@ -24,8 +24,17 @@
                 width: 0;
             }
 
+            ul.button-group li.controls {
+                text-align: left;
+                padding-left: 2em;
+            }
+
             .active {
                 font-weight: bold;
+            }
+
+            .odd {
+                background-color: white;
             }
         </style>
         <script type="text/javascript">
@@ -34,6 +43,10 @@
                 index: 0,
                 isPlaying: false,
                 audio: null,
+                config: {
+                    loop: true,
+                    shuffle: false
+                },
                 trackList: [],
                 errors: [],
                 addTrack: function(track) {
@@ -44,6 +57,9 @@
                     } else {
                         this.addError("Format '" + track.type + "' is not supported by your browser.");
                     }
+                },
+                removeTrack: function(position) {
+                    this.trackList.splice(position, 1);
                 },
                 load: function(index) {
                     var track = this.trackList[this.index],
@@ -102,16 +118,25 @@
                     } else {
                         this.play();
                     }
+
+                    return this.isPlaying;
                 },
                 prev: function() {
                     this.index = this.index == 0 ? this.trackList.length - 1 : this.index - 1;
                     console.log(this.index);
-                    this.reload();
+                        this.reload();
                 },
                 next: function() {
                     this.index = (this.index + 1) % this.trackList.length;
                     console.log(this.index);
-                    this.reload();
+                    this.pause();
+                    if (this.index == 0) {
+                        if (this.config.loop) {
+                            this.reload();
+                        }
+                    } else {
+                        this.reload();
+                    }
                 },
                 reload: function() {
                     this.pause();
@@ -129,6 +154,11 @@
                 },
                 jumpTo: function(time) {
                     this.audio.currentTime = time;
+                },
+                toggleMute: function() {
+                    this.audio.muted = !this.audio.muted;
+
+                    return this.audio.muted;
                 },
                 addError: function(error) {
                     var exists = false,
@@ -236,6 +266,14 @@
                     <li>
                         <a href="#" class="button radius" ng-click="playlist.next()">Next</a>
                     </li>
+                    <li class="controls">
+                        <label for="loop"><input type="checkbox" id="loop" ng-model="playlist.config.loop"><span class="custom checkbox"></span> Loop</label>
+                        <label for="shuffle"><input type="checkbox" id="shuffle"><span class="custom checkbox"></span> Shuffle</label>
+                    </li>
+                    <li class="controls">
+                        <label for="mute"><input type="checkbox" id="mute" ng-model="playlist.audio.muted"><span class="custom checkbox"></span> Mute</label>
+                        <label for="spectrum"><input type="checkbox" id="spectrum"><span class="custom checkbox"></span> Spectrum</label>
+                    </li>
                 </ul>
             </div>
 
@@ -247,8 +285,10 @@
                     Drop music here
                 </div>
                 <ol>
-                    <li ng-repeat="track in playlist.trackList" ng-class="{track: 1, active: $index==playlist.index, even: $index%2==0, odd: !($index%2==0)}">
-                        {{ track.name }}
+                    <li ng-repeat="track in playlist.trackList" ng-class="{active: $index==playlist.index, even: $index%2==0, odd: !($index%2==0)}">
+                        <a href="" class="track" ng-click="playlist.playTrack($index)">{{ track.name }}</a>
+                        <a href="" class="close" ng-click="playlist.removeTrack($index)">&times;</a>
+                        <a href="" class="stopafter" ng-click="playlist.stopAfter($index)">s</a>
                     </li>
                 </ol>
             </div>
