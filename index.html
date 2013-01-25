@@ -120,6 +120,16 @@
                     this.load();
                     this.play();
                 },
+                seek: function(percentage) {
+                    var newCurrentTime = ((percentage * this.audio.duration) / 100);
+
+                    console.log('Seeking to ' + percentage + '%');
+
+                    this.jumpTo(newCurrentTime);
+                },
+                jumpTo: function(time) {
+                    this.audio.currentTime = time;
+                },
                 addError: function(error) {
                     var exists = false,
                         x = this.errors.length;
@@ -180,7 +190,14 @@
                     e.preventDefault();
                     e.dataTransfer.dropEffect = 'copy';
                 }, false)
-                var buttons = document.getElementsByClassName('button');
+
+                document.getElementById('seeker').addEventListener('click', function(e) {
+                    var offset = e.offsetX || e.offsetLeft,
+                        width = e.target.offsetWidth
+                        percentage = ((offset / width) * 100);
+
+                    Beyer.Playlist.seek(percentage);
+                }, false);
             };
         </script>
     </head>
@@ -204,7 +221,7 @@
                 <h4 class="subheader">
                     {{ playlist.trackList[playlist.index].name }}
                 </h3>
-                <div class="progress" ng-show="playlist.audio">
+                <div id="seeker" class="progress" ng-show="playlist.audio">
                     <span id="progressbar" class="meter"></span>
                     <span id="timer">0:00</span>
                 </div>
