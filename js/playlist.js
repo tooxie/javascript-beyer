@@ -252,8 +252,6 @@ Beyer.Playlist = {
             max = Math.max(source, dest),
             min = Math.min(source, dest),
             newTrackList = this.trackList.slice(0, min),
-            // oldTrack = null,
-            // track = this.trackList[source],
             x = min - 1;
 
         var step = source < dest ? 1 : -1;
@@ -264,9 +262,10 @@ Beyer.Playlist = {
             } else {
                 newTrackList[x] = this.trackList[x + step];
             }
-
-            // newTrackList[x] = this.trackList[x];
         }
+
+        console.log(this.trackList.slice(max + 1, length));
+        newTrackList = newTrackList.concat(this.trackList.slice(max + 1, length));
 
         this.trackList = newTrackList;
         if (this.getIndex() == dest) {
