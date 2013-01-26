@@ -1,0 +1,71 @@
+#playlist .empty, #player {
+    text-align: center;
+}
+
+#playlist.over {
+    background-color: rgb(43, 166, 203);
+}
+
+#playlist .track.over {
+    border-top: 1px dashed black;
+}
+
+#timer {
+    float: left;
+    margin-top: -18px;
+    width: 100%;
+}
+
+.meter {
+    width: 0;
+}
+
+ul.button-group li.controls {
+    text-align: left;
+    padding-left: 2em;
+}
+
+.active {
+    font-weight: bold;
+}
+
+li.track:hover {
+    background-color: white;
+}
+
+li.track:hover .options {
+    visibility: visible;
+}
+
+.stopafter, li.stopafter:hover {
+    background-color: #FFFF99;
+}
+
+.track .options {
+    width: 150px;
+    float: right;
+    visibility: hidden;
+    text-align: right;
+}
+
+.trackname:hover {
+    cursor: pointer;
+    color: rgb(43, 166, 203);
+}
+
+footer {
+    background-color: #3F3F3F;
+    border: 1px solid black;
+    border-width: 1px 0;
+    color: white;
+    padding: 2em 0;
+    margin-top: 2em;
+}
+
+[draggable] {
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: move;
+}

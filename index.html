@@ -1,375 +1,17 @@
 <!DOCTYPE html>
-<html ng-app>
+<html ng-app="directives">
     <head>
         <title>Beyer Music Player // Mozilla Dev Derby</title>
+
+        <link rel="stylesheet" type="text/css" href="http://cdn.jsdelivr.net/foundation/3.2.4/stylesheets/foundation.min.css">
+        <link rel="stylesheet" type="text/css" href="styles.css">
+
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.1/angular.min.js"></script>
         <script type="text/javascript" src="https://raw.github.com/aadsm/JavaScript-ID3-Reader/master/src/id3.js"></script>
-        <link rel="stylesheet" type="text/css" href="http://cdn.jsdelivr.net/foundation/3.2.4/stylesheets/foundation.min.css">
-        <style type="text/css">
-            #playlist .empty, #player {
-                text-align: center;
-            }
 
-            #playlist.over {
-                background-color: rgb(43, 166, 203);
-            }
-
-            #timer {
-                float: left;
-                margin-top: -18px;
-                width: 100%;
-            }
-
-            .meter {
-                width: 0;
-            }
-
-            ul.button-group li.controls {
-                text-align: left;
-                padding-left: 2em;
-            }
-
-            .active {
-                font-weight: bold;
-            }
-
-            li.track:hover {
-                background-color: white;
-            }
-
-            li.track:hover .options {
-                visibility: visible;
-            }
-
-            .stopafter, li.stopafter:hover {
-                background-color: #FFFF99;
-            }
-
-            .track .options {
-                width: 150px;
-                float: right;
-                visibility: hidden;
-                text-align: right;
-            }
-
-            .trackname:hover {
-                cursor: pointer;
-                color: rgb(43, 166, 203);
-            }
-
-            footer {
-                background-color: #3F3F3F;
-                border: 1px solid black;
-                border-width: 1px 0;
-                color: white;
-                padding: 2em 0;
-                margin-top: 2em;
-            }
-        </style>
-        <script type="text/javascript">
-            Beyer = {};
-            Beyer.Playlist = {
-                index: 0,
-                isPlaying: false,
-                stopAt: -1,
-                audio: null,
-                config: {
-                    loop: true,
-                    shuffle: false,
-                    muted: false,
-                    spectrum: true
-                },
-                duration: {
-                    minutes: 0,
-                    seconds: '00'
-                },
-                elapsed: {
-                    minutes: 0,
-                    seconds: '00',
-                    percent: 0
-                },
-                trackList: [],
-                errors: [],
-                getIndex: function() {
-                    return this.index >= this.trackList.length ? 0 : this.index;
-                },
-                setIndex: function(index) {
-                    index = index || 0;
-                    if (this.config.shuffle) {
-                        console.log('Going full retard');
-                        this.index = Math.floor(Math.random() * (this.trackList.length));
-                    } else {
-                        this.index = (index >= this.trackList.length) ? 0 : index;
-                    }
-                },
-                addTrack: function(track) {
-                    var canPlay = (new Audio()).canPlayType(track.type);
-                    if (canPlay == "probably" || canPlay == "maybe") {
-                        console.log('Adding ' + track.name);
-                        this.trackList = this.trackList.concat(track);
-                    } else {
-                        this.addError("Format '" + track.type + "' is not supported.");
-                    }
-                },
-                removeTrack: function(position) {
-                    var thisTrack = this.getIndex() === position,
-                        lastTrack = position === this.trackList.length - 1;
-
-                    this.trackList.splice(position, 1);
-
-                    if (thisTrack) {
-                        if (lastTrack) {
-                            this.setIndex(0);
-                        }
-
-                        this.stop();
-                        if (this.trackList.length) {
-                            if (this.config.loop) {
-                                this.reload();
-                            } else {
-                                this.load();
-                            }
-                        }
-                    }
-                    if (this.stopAt === position) {
-                        this.stopAt = -1;
-                    }
-                },
-                load: function(index) {
-                    var index = index || this.getIndex(),
-                        track = this.trackList[index],
-                        url = window.URL || window.webkitURL,
-                        src = url.createObjectURL(track);
-
-                    if (this.getIndex() != index) {
-                        this.setIndex(index);
-                    }
-
-                    this.audio = new Audio();
-                    this.audio.src = src;
-                    this.audio.load();
-                    this.audio.muted = this.config.muted;
-
-                    this.audio.addEventListener('loadedmetadata', function(){
-                        var minutes = Math.floor(this.duration / 60),
-                            seconds = (Math.floor(this.duration) % 60).toFixed();
-
-                        Beyer.Playlist.duration.seconds = (seconds.length < 2) ? "0" + seconds : seconds;
-                        Beyer.Playlist.duration.minutes = minutes;
-                    }, false);
-
-                    this.audio.addEventListener('timeupdate', function() {
-                        var minutes = Math.floor(this.currentTime / 60),
-                            seconds = (Math.floor(this.currentTime) % 60).toFixed() + '',
-                            elapsed = (this.currentTime / this.duration) * 100;
-
-                        Beyer.Playlist.elapsed.minutes = minutes;
-                        Beyer.Playlist.elapsed.seconds = (seconds.length < 2) ? "0" + seconds : seconds;
-                        Beyer.Playlist.elapsed.percent = elapsed;
-
-                        Beyer.scope.$apply();
-                    }, false);
-
-                    this.audio.addEventListener('ended', function(){
-                        Beyer.Playlist.next();
-                    }, false);
-                },
-                play: function() {
-                    console.log('Playing ' + this.trackList[this.getIndex()].name);
-                    this.isPlaying = true;
-                    this.audio.play();
-                },
-                playAt: function(index) {
-                    if (typeof(index) !== "number") {
-                        return false;
-                    }
-
-                    this.stop();
-                    this.load(index);
-                    this.play();
-                },
-                pause: function() {
-                    this.isPlaying = false;
-                    this.audio.pause();
-                },
-                stop: function() {
-                    console.log('Full stopping');
-                    this.pause();
-                    this.audio = undefined;
-                    this.elapsed = {
-                        minutes: 0,
-                        seconds: '00',
-                        percent: 0
-                    }
-                    this.duration = {
-                        minutes: 0,
-                        seconds: '00'
-                    }
-                },
-                togglePlay: function() {
-                    if (!this.trackList.length) {
-                        return false;
-                    }
-                    if (this.isPlaying) {
-                        this.pause();
-                    } else {
-                        this.play();
-                    }
-
-                    return this.isPlaying;
-                },
-                prev: function() {
-                    this.setIndex(this.getIndex() == 0 ? this.trackList.length - 1 : this.getIndex() - 1);
-                    if (this.isPlaying) {
-                        this.pause();
-                        if (this.getIndex() == this.trackList.length - 1) {
-                            if (this.config.loop) {
-                                this.reload();
-                            }
-                        } else {
-                            this.reload();
-                        }
-                    } else {
-                        this.load();
-                    }
-                },
-                next: function() {
-                    var stop = (this.getIndex() === this.stopAt);
-
-                    if (stop) {
-                        this.stopAt = -1;
-                    }
-
-                    this.setIndex((this.getIndex() + 1) % this.trackList.length);
-                    this.config.muted = this.audio.muted;
-
-                    if (this.isPlaying) {
-                        if (this.getIndex() == 0) {
-                            if (!this.config.loop) {
-                                stop = true;
-                            }
-                        }
-                    }
-
-                    if (stop) {
-                        this.stop();
-                        Beyer.scope.$apply();
-                    } else {
-                        this.reload();
-                    }
-                },
-                reload: function() {
-                    this.pause();
-                    this.audio.src = '';
-                    this.audio = undefined;
-                    this.load();
-                    this.play();
-                },
-                seek: function(percentage) {
-                    var newCurrentTime = (percentage * this.audio.duration) / 100;
-
-                    console.log('Seeking to ' + percentage + '%');
-
-                    this.jumpTo(newCurrentTime);
-                },
-                jumpTo: function(time) {
-                    this.audio.currentTime = time;
-                },
-                syncShuffle: function() {
-                    if (!this.config.loop) {
-                        this.config.shuffle = false;
-                    }
-                },
-                syncLoop: function() {
-                    if (this.config.shuffle) {
-                        this.config.loop = true;
-                    }
-                },
-                toggleMute: function() {
-                    this.audio.muted = !this.audio.muted;
-
-                    return this.audio.muted;
-                },
-                toggleStopAt: function(index) {
-                    index = typeof(index) === "undefined" ? -1 : index;
-
-                    if (index === this.stopAt) {
-                        this.stopAt = -1;
-                    } else {
-                        this.stopAt = index;
-                    }
-                },
-                addError: function(error) {
-                    var exists = false,
-                        x = this.errors.length;
-
-                    while (x--) {
-                        if (this.errors[x] == error) {
-                            exists = true;
-                        }
-                    }
-                    if (!exists) {
-                        this.errors = this.errors.concat(error);
-                        console.log('[ERROR] ' + error);
-                    }
-                },
-                removeError: function (error) {
-                    var x = this.errors.length;
-                    while (x--) {
-                        if (this.errors[x] == error) {
-                            this.errors.splice(x, 1);
-                        }
-                    }
-                }
-            };
-
-            // AngularJS stuff
-            Beyer.controller = function ($scope) {
-                Beyer.scope = $scope;
-                $scope.playlist = Beyer.Playlist;
-
-                var dropzone = document.getElementById('dropzone');
-
-                dropzone.addEventListener('drop', function (e) {
-                    document.getElementById('playlist').classList.remove('over');
-                    e.stopPropagation();
-                    e.preventDefault();
-
-                    var tracks = e.dataTransfer.files;
-                    for (var i = 0, track; track = tracks[i]; i++) {
-                        Beyer.Playlist.addTrack(track);
-                    }
-
-                    if (!Beyer.Playlist.audio && Beyer.Playlist.trackList.length) {
-                        Beyer.Playlist.load();
-                    }
-
-                    $scope.$apply();
-                }, false);
-
-                dropzone.addEventListener('dragend', function (e) {
-                    document.getElementById('playlist').classList.remove('over');
-                }, false);
-
-                dropzone.addEventListener('dragenter', function (e) {
-                    document.getElementById('playlist').classList.add('over');
-                }, false);
-
-                dropzone.addEventListener('dragover', function (e) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'copy';
-                }, false)
-
-                document.getElementById('seeker').addEventListener('click', function(e) {
-                    var offset = e.offsetX || e.offsetLeft,
-                        width = e.target.offsetWidth
-                        percentage = ((offset / width) * 100).toFixed(2);
-
-                    Beyer.Playlist.seek(percentage);
-                }, false);
-            };
-        </script>
+        <script type="text/javascript" src="js/playlist.js"></script>
+        <script type="text/javascript" src="js/controller.js"></script>
+        <script type="text/javascript" src="js/ngsortable.js"></script>
     </head>
 
     <body id="dropzone" ng-controller="Beyer.controller">
@@ -381,14 +23,13 @@
             <hr>
 
             <div id="errors" ng-show="playlist.errors.length">
-
                 <div class="alert-box alert" ng-repeat="error in playlist.errors">
                     {{ error }}
                     <a href="" class="close" ng-click="playlist.removeError(error)">&times;</a>
                 </div>
             </div>
 
-            <div id="player" class="panel radius">
+            <div id="player" class="panel radius" ng-show="playlist.trackList.length">
                 <h4 class="subheader">
                     {{ playlist.trackList[playlist.getIndex()].name }}
                 </h4>
@@ -412,7 +53,7 @@
                         <label for="shuffle"><input type="checkbox" id="shuffle" ng-model="playlist.config.shuffle" ng-click="playlist.syncLoop()"><span class="custom checkbox"></span> Shuffle</label>
                     </li>
                     <li class="controls">
-                        <label for="mute"><input type="checkbox" id="mute" ng-model="playlist.audio.muted"><span class="custom checkbox"></span> Mute</label>
+                        <label for="mute"><input type="checkbox" id="mute" ng-model="playlist.config.muted" ng-click="playlist.toggleMute()"><span class="custom checkbox"></span> Mute</label>
                         <label for="spectrum"><input type="checkbox" id="spectrum" ng-model="playlist.config.spectrum"><span class="custom checkbox"></span> Spectrum</label>
                     </li>
                 </ul>
@@ -429,8 +70,12 @@
                 <div class="empty" ng-hide="playlist.trackList.length">
                     Drop music here
                 </div>
-                <ol>
-                    <li ng-repeat="track in playlist.trackList" ng-class="{track: 1, active: $index==playlist.getIndex(), stopafter: $index==playlist.stopAt}">
+                <ol ng-sortable="playlist.trackList">
+                    <li ng-repeat="track in playlist.trackList"
+                        ng-class="{track: 1,
+                                   active: $index==playlist.getIndex(),
+                                   stopafter: $index==playlist.stopAt}"
+                        draggable="true">
                         <span class="trackname" ng-click="playlist.playAt($index)">{{ track.name }}</span>
                         <div class="options">
                             <a href="" title="Stop playing after this track" ng-click="playlist.toggleStopAt($index)">s</a>
