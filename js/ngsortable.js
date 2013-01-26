@@ -15,9 +15,6 @@ angular.module('directives', [])
                     dropzone = document.getElementById('dropzone');
                 if (track.draggable && !track.handled) {
                     track.handled = true;
-                    track.addEventListener('click', function (e) {
-                        console.log('*click* on ' + this.id);
-                    }, false)
                     // dragstart
                     track.addEventListener('dragstart', function (e) {
                         dropzone.ignoreDrag = true;
