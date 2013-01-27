@@ -8,7 +8,8 @@ Beyer.Playlist = {
         loop: true,
         shuffle: false,
         muted: false,
-        spectrum: false
+        spectrum: true,
+        canSpectrum: false
     },
     duration: {
         minutes: 0,
@@ -80,22 +81,31 @@ Beyer.Playlist = {
             this.setIndex(index);
         }
 
+        if (this.audio) {
+            url.revokeObjectURL(this.audio.src);
+        }
+
         this.audio = new Audio();
         this.audio.src = src;
         this.audio.load();
         this.audio.muted = this.config.muted;
 
-        this.audio.addEventListener('loadedmetadata', function(){
+        this.audio.addEventListener('loadedmetadata', function(e){
             var minutes = Math.floor(this.duration / 60),
                 seconds = (Math.floor(this.duration) % 60).toFixed();
 
             Beyer.Playlist.duration.seconds = (seconds.length < 2) ? "0" + seconds : seconds;
             Beyer.Playlist.duration.minutes = minutes;
 
+            Beyer.Playlist.config.canSpectrum = Boolean(this.mozChannels);
+            if (Beyer.Playlist.config.canSpectrum) {
+                Beyer.Spectrum.init(this);
+            }
+
             Beyer.scope.$apply();
         }, false);
 
-        this.audio.addEventListener('timeupdate', function() {
+        this.audio.addEventListener('timeupdate', function(e) {
             var minutes = Math.floor(this.currentTime / 60),
                 seconds = (Math.floor(this.currentTime) % 60).toFixed() + '',
                 elapsed = (this.currentTime / this.duration) * 100;
@@ -105,6 +115,12 @@ Beyer.Playlist = {
             Beyer.Playlist.elapsed.percent = elapsed;
 
             Beyer.scope.$apply();
+        }, false);
+
+        this.audio.addEventListener('MozAudioAvailable', function(e) {
+            if (Beyer.Playlist.config.canSpectrum) {
+                Beyer.Spectrum.draw(e);
+            }
         }, false);
 
         this.audio.addEventListener('ended', function(){
@@ -205,8 +221,10 @@ Beyer.Playlist = {
         }
     },
     reload: function() {
+        var url = window.URL || window.webkitURL;
+
         this.pause();
-        this.audio.src = '';
+        url.revokeObjectURL(this.audio.src);
         this.audio = undefined;
         this.load();
         this.play();

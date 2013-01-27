@@ -11,6 +11,8 @@
 
         <script type="text/javascript" src="js/playlist.js"></script>
         <script type="text/javascript" src="js/controller.js"></script>
+        <script type="text/javascript" src="js/spectrum.js"></script>
+        <script type="text/javascript" src="js/fft.js"></script>
         <script type="text/javascript" src="js/ngsortable.js"></script>
     </head>
 
@@ -59,9 +61,11 @@
                 </ul>
             </div>
 
-            <div class="panel radius" ng-show="playlist.config.spectrum && playlist.audio">
-                AWESOME SPECTRUM MEGA ANALYZER
+            <div class="alert-box alert" ng-show="playlist.config.spectrum && playlist.audio && !playlist.config.canSpectrum">
+                Please use Mozilla Firefox to enable the spectrum analyzer.
             </div>
+            <canvas id="spectrumcanvas" class="panel radius" ng-show="playlist.config.spectrum && playlist.audio && playlist.config.canSpectrum">
+            </canvas>
 
             <h2 class="subheader">
                 Playlist

@@ -38,7 +38,7 @@ Beyer.controller = function ($scope) {
     }, false)
 
     document.getElementById('seeker').addEventListener('click', function(e) {
-        var offset = e.offsetX || e.offsetLeft,
+        var offset = e.target.offsetX || e.target.offsetLeft,
             width = e.target.offsetWidth
             percentage = ((offset / width) * 100).toFixed(2);
 
