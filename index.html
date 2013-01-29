@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html ng-app="directives">
+<html lang="en" ng-app="directives">
     <head>
         <title>Beyer Music Player // Mozilla Dev Derby</title>
+        <meta charset="utf-8">
 
         <link rel="stylesheet" type="text/css" href="http://cdn.jsdelivr.net/foundation/3.2.4/stylesheets/foundation.min.css">
         <link rel="stylesheet" type="text/css" href="styles.css">
@@ -74,8 +75,8 @@
                 <div class="empty" ng-hide="playlist.trackList.length">
                     Drop music here
                 </div>
-                <ol ng-sortable="playlist.trackList">
-                    <li ng-repeat="track in playlist.trackList"
+                <ol ng-sortable="playlist.trackList" id="tracklist">
+                    <li id="track{{ $index }}" ng-repeat="track in playlist.trackList"
                         ng-class="{track: 1,
                                    active: $index==playlist.getIndex(),
                                    stopafter: $index==playlist.stopAt}"
